@@ -1,0 +1,72 @@
+﻿@page "/"
+@using BlazorApp42.Components.Models
+@using BlazorApp42.Components.Services
+@inject ArtikelService ArtikelService
+@inject ArtikelInventarService ArtikelInventarService
+@rendermode InteractiveServer
+
+<PageTitle>Home</PageTitle>
+
+<input type="text" @bind="newArtikel" />
+@if (artikelInventars != null)
+{
+    <select @onchange="SelectedArtikelInventarChanged">
+        <option selected>Select</option>
+        @foreach (var artikelInventar in artikelInventars)
+        {
+            <option value="@artikelInventar.Id
+            ">@artikelInventar.Anzahl
+            </option>
+        }
+    </select>
+}
+<button @onclick="CreateNewArtikel">Create new</button>
+@if(artikels == null)
+{
+    <h1>Loading...</h1>
+}
+else
+{
+    @foreach (var artikel in artikels)
+    {
+        <p>@artikel.Bezeichnung Noch verfügbar: @(artikel.ArtikelInventar != null ? artikel.ArtikelInventar.Anzahl : "Nicht bekannt") <button @onclick="@(() => {DeleteArtikel(artikel.Id);})">Löschen</button></p>
+    }
+}
+
+@code {
+    private List<Artikel>? artikels = null;
+    private List<ArtikelInventar>? artikelInventars = null;
+    private string newArtikel;
+    private int newArtikelInventarId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        artikels = await ArtikelService.GetAllArtikel();
+        artikelInventars = await ArtikelInventarService.GetAllArtikelInventar();
+    }
+
+    async void CreateNewArtikel() 
+    {
+        if (!String.IsNullOrEmpty(newArtikel))
+        {
+            await ArtikelService.CreateArtikel(newArtikel, newArtikelInventarId == 0 ? null : newArtikelInventarId);
+            artikels = await ArtikelService.GetAllArtikel();
+            StateHasChanged();
+        }
+    }
+
+    async void DeleteArtikel(int artikelId)
+    {
+        await ArtikelService.DeleteArtikel(artikelId);
+        artikels = await ArtikelService.GetAllArtikel();
+        StateHasChanged();
+    }
+
+    private void SelectedArtikelInventarChanged(ChangeEventArgs e)
+    {
+        if (e.Value is not null)
+        {
+            newArtikelInventarId = Convert.ToInt32(e.Value);
+        }
+    }
+}
